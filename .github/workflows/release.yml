@@ -1,0 +1,43 @@
+name: Release
+
+# Push a tag like v0.2.0 (or a pre-release v0.2.0-alpha) to cut a GitHub Release
+# with the zipped extension. The tag's numeric part must match manifest version;
+# a suffix like -alpha/-beta/-rc marks the release as a pre-release.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Regenerate build outputs
+        run: node build.mjs
+
+      - name: Verify manifest version matches the tag
+        run: |
+          MANIFEST_V=$(node -p "require('./build/manifest.json').version")
+          TAG_V="${GITHUB_REF_NAME#v}"
+          BASE_V="${TAG_V%%-*}"   # strip any -alpha/-beta/-rc suffix
+          echo "manifest=$MANIFEST_V  tag=$TAG_V  base=$BASE_V"
+          test "$MANIFEST_V" = "$BASE_V" || {
+            echo "::error::manifest version ($MANIFEST_V) != tag base ($BASE_V)"; exit 1; }
+
+      - name: Zip extension
+        run: cd build && zip -r -FS "../unfold-${GITHUB_REF_NAME}.zip" . -x '*.DS_Store'
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: unfold-*.zip
+          generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, '-') }}

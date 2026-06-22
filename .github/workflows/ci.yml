@@ -1,0 +1,38 @@
+name: CI
+
+# Validate the source, regenerate the build outputs, and fail if the committed
+# generated files (build/run.js, bookmarklet.txt, install.html) are stale.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Syntax check source
+        run: node --check bookmarklet/bookmarklet-source.js
+
+      - name: Validate manifest JSON
+        run: node -e "JSON.parse(require('fs').readFileSync('build/manifest.json','utf8'))"
+
+      - name: Regenerate build outputs
+        run: node build.mjs
+
+      - name: Fail if generated files drifted from source
+        run: git diff --exit-code -- build/run.js bookmarklet/bookmarklet.txt bookmarklet/install.html
+
+      - name: Package unpacked extension
+        run: cd build && zip -r -FS ../unfold-ci.zip . -x '*.DS_Store'
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: unfold-unpacked
+          path: unfold-ci.zip

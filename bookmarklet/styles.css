@@ -1,0 +1,280 @@
+  :root {
+    --saq-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+    --saq-ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+    --saq-bg: #f7f7f8;
+    --saq-card: #ffffff;
+    --saq-border: #e7e7e9;
+    --saq-ink: #18181b;
+    --saq-muted: #71717a;
+    --saq-primary: #1f1f23;
+    --saq-primary-strong: #000000;
+    --saq-primary-ring: rgba(31, 31, 35, 0.32);
+  }
+  #saq-overlay {
+    position: fixed; inset: 0; z-index: 2147483600;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(247, 247, 248, 0.72);
+    -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+    opacity: 1; transition: opacity 200ms var(--saq-ease-out);
+  }
+  #saq-overlay[data-leaving] { opacity: 0; }
+  .saq-card {
+    display: flex; flex-direction: column; gap: 16px; width: 272px;
+    padding: 22px; border-radius: 14px; background: var(--saq-card);
+    border: 1px solid var(--saq-border);
+    box-shadow: 0 8px 30px -12px rgba(24,24,27,.18);
+    font: 500 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+    color: var(--saq-ink);
+    animation: saq-pop 240ms var(--saq-ease-out) both;
+  }
+  .saq-card-row { display: flex; align-items: center; gap: 12px; }
+  .saq-spinner {
+    width: 18px; height: 18px; flex: none; border-radius: 50%;
+    border: 2px solid #e4e4e7; border-top-color: var(--saq-primary);
+    animation: saq-spin .7s linear infinite;
+  }
+  .saq-count { margin-left: auto; color: var(--saq-muted); font-variant-numeric: tabular-nums; }
+  .saq-track { height: 3px; border-radius: 999px; background: #ebebed; overflow: hidden; }
+  .saq-bar { height: 100%; width: 100%; background: var(--saq-primary);
+    transform: scaleX(0); transform-origin: left;
+    transition: transform 220ms var(--saq-ease-out); }
+
+  /* Full-width bottom sheet over a dimmed backdrop; a launcher brings it back. */
+  #saq-backdrop {
+    position: fixed; inset: 0; z-index: 2147483400;
+    background: rgba(24,24,27,.42);
+    -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
+    opacity: 0; pointer-events: none;
+    transition: opacity 360ms var(--saq-ease-drawer);
+  }
+  #saq-backdrop.is-open { opacity: 1; pointer-events: auto; }
+
+  #saq-sheet {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 2147483450;
+    height: 94vh; display: flex; flex-direction: column;
+    background: var(--saq-bg); border-radius: 16px 16px 0 0;
+    box-shadow: 0 -10px 48px -16px rgba(24,24,27,.35);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    transform: translateY(100%); will-change: transform;
+    transition: transform 400ms var(--saq-ease-drawer);
+  }
+  #saq-sheet.is-open { transform: translateY(0); }
+  #saq-sheet.is-dragging { transition: none; }
+  .saq-grip { flex: none; display: flex; justify-content: center;
+    padding: 10px 0 2px; cursor: grab; touch-action: none; }
+  .saq-grip::before { content: ""; width: 38px; height: 5px; border-radius: 999px;
+    background: #d4d4d8; transition: background 150ms ease; }
+  .saq-header {
+    flex: none; display: flex; align-items: center; gap: 10px;
+    padding: 4px 16px 12px;
+  }
+  .saq-title { font: 600 15px system-ui; color: var(--saq-ink); }
+  .saq-count-pill { font: 500 13px system-ui; color: var(--saq-muted);
+    font-variant-numeric: tabular-nums; }
+  .saq-tag { font: 600 11px system-ui; letter-spacing: .02em;
+    color: #15803d; background: #dcfce7; padding: 3px 9px; border-radius: 999px; }
+  .saq-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+  .saq-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    font: 600 13px system-ui; color: #3f3f46;
+    background: #f1f1f3; border: 1px solid rgba(16,24,40,.05);
+    padding: 8px 13px; border-radius: 10px; cursor: pointer;
+    box-shadow: 0 1px 1.5px rgba(16,24,40,.04), inset 0 1px 0 rgba(255,255,255,.7);
+    transition: transform 150ms var(--saq-ease-out), background 150ms ease,
+      box-shadow 150ms ease, color 150ms ease;
+  }
+  .saq-btn:active {
+    transform: scale(0.96);
+    background: #e4e4e7;
+    box-shadow: inset 0 1px 2px rgba(16,24,40,.12);
+  }
+  .saq-btn svg { width: 15px; height: 15px; opacity: .65; }
+  .saq-icon {
+    width: 34px; height: 34px; padding: 0; gap: 0;
+    justify-content: center; border-radius: 999px; color: var(--saq-muted);
+  }
+  .saq-icon svg { width: 16px; height: 16px; opacity: .8; }
+  .saq-clock {
+    display: inline-flex; align-items: center; gap: 5px;
+    font: 600 12.5px system-ui; font-variant-numeric: tabular-nums;
+    color: var(--saq-muted); white-space: nowrap; margin-right: 2px;
+  }
+  .saq-clock svg { width: 14px; height: 14px; opacity: .65; }
+  .saq-warn {
+    flex: none; display: flex; align-items: center; gap: 8px;
+    padding: 10px 16px; color: #92400e; background: #fef3c7;
+    border-bottom: 1px solid #fcd34d; font: 500 13px/1.4 system-ui;
+  }
+  .saq-warn svg { flex: none; width: 16px; height: 16px; }
+  .saq-scroll {
+    flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+    padding: 18px 16px 48px;
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 20px, #000 calc(100% - 30px), transparent 100%);
+    mask-image: linear-gradient(to bottom, transparent 0, #000 20px, #000 calc(100% - 30px), transparent 100%);
+  }
+  .saq-inner { max-width: 760px; margin: 0 auto;
+    animation: saq-fade 200ms var(--saq-ease-out) both; }
+
+  .saq-launcher {
+    position: fixed; left: 50%; bottom: 26px; z-index: 2147483400;
+    display: flex; align-items: center; gap: 9px;
+    padding: 13px 22px; border: 0; border-radius: 999px;
+    color: #fff; cursor: pointer; font: 600 14px/1 system-ui; letter-spacing: .01em;
+    background-color: var(--saq-primary);
+    background-image: none;
+    box-shadow:
+      0 1px 1px rgba(16,24,40,.08),
+      0 4px 10px -2px rgba(16,24,40,.42),
+      0 14px 30px -10px rgba(16,24,40,.5),
+      inset 0 1px 0 rgba(255,255,255,.30),
+      inset 0 -1px 0 rgba(16,24,40,.18);
+    transform: translate(-50%, 10px) scale(0.96); opacity: 0; pointer-events: none;
+    transition: transform 260ms var(--saq-ease-out), opacity 200ms ease,
+      box-shadow 200ms ease, background-color 150ms ease;
+  }
+  .saq-launcher.is-shown { transform: translateX(-50%); opacity: 1; pointer-events: auto; }
+  .saq-launcher:active {
+    transform: translateX(-50%) scale(0.97);
+    box-shadow:
+      0 1px 2px rgba(16,24,40,.4),
+      inset 0 1px 2px rgba(16,24,40,.28),
+      inset 0 1px 0 rgba(255,255,255,.1);
+  }
+  .saq-launcher:focus-visible { outline: 0;
+    box-shadow:
+      0 4px 10px -2px rgba(16,24,40,.42),
+      0 14px 30px -10px rgba(16,24,40,.5),
+      inset 0 1px 0 rgba(255,255,255,.3),
+      0 0 0 4px var(--saq-primary-ring);
+  }
+  .saq-launcher svg { width: 16px; height: 16px; opacity: .92; }
+
+  .saq-block {
+    position: relative; margin: 0 0 16px;
+    background: var(--saq-card); border: 1px solid rgba(16,24,40,.045);
+    border-radius: 16px; padding: 18px 22px 22px; scroll-margin-top: 8px;
+    box-shadow: 0 1px 2px rgba(16,24,40,.04), 0 10px 24px -14px rgba(16,24,40,.16);
+    animation: saq-rise 280ms var(--saq-ease-out) both;
+  }
+  .saq-qlabel {
+    margin: 0 0 14px;
+    font: 600 11px system-ui; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--saq-muted);
+  }
+  .saq-block.is-syncing { opacity: .55; filter: blur(1.5px); pointer-events: none;
+    transition: opacity 200ms ease, filter 200ms ease; }
+  .saq-block.is-syncing::after {
+    content: ""; position: absolute; top: 14px; right: 14px;
+    width: 15px; height: 15px; border-radius: 50%;
+    border: 2px solid #e4e4e7; border-top-color: var(--saq-ink);
+    animation: saq-spin .7s linear infinite;
+  }
+  /* answer did not confirm "Saved" — flag it so the user re-checks natively */
+  .saq-block.saq-unsaved { border-color: #f87171; box-shadow: 0 0 0 1px #f87171; }
+  .saq-block.saq-unsaved::before {
+    content: "Not saved — check on the original quiz";
+    position: absolute; top: -1px; right: -1px;
+    padding: 4px 11px; border-radius: 0 16px 0 12px;
+    background: #ef4444; color: #fff; font: 600 11px system-ui; z-index: 5;
+  }
+  /* Hide the component's legend — escaped duplicate of the captured prompt. */
+  #saq-sheet legend, #saq-sheet .choices-legend { display: none !important; }
+  .saq-stem { margin: 2px 0 16px; font: 500 16px/1.6 system-ui; color: var(--saq-ink); }
+  .saq-stem .katex { font-size: 1.04em; }
+  .saq-stem p { margin: 0 0 8px; }
+  /* Review mode: result banner + feedback callout */
+  #saq-sheet .evaluated-answer .header {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 12px; margin-bottom: 12px; font-weight: 600;
+  }
+  #saq-sheet .feedback {
+    margin-top: 16px; padding: 12px 14px; border-radius: 12px;
+    background: #f7f7f8; border: 1px solid var(--saq-border);
+    font: 400 14px/1.55 system-ui; color: var(--saq-ink);
+  }
+  #saq-sheet .feedback .title {
+    display: flex; align-items: center; gap: 6px; margin-bottom: 6px;
+    font: 600 11px system-ui; letter-spacing: .04em; text-transform: uppercase;
+  }
+  /* Flatten the field wrapper's own box so we don't get a box-in-box. */
+  #saq-sheet .textarea-wrapper,
+  #saq-sheet .form-field {
+    border: 0 !important; background: transparent !important;
+    box-shadow: none !important; padding: 0 !important;
+  }
+  /* Style the captured text answer fields */
+  #saq-sheet textarea,
+  #saq-sheet input[type=text],
+  #saq-sheet input[type=number] {
+    width: 100%; box-sizing: border-box;
+    font: 500 15px/1.5 system-ui !important; color: var(--saq-ink);
+    background: #fff; border: 1px solid var(--saq-border); border-radius: 12px;
+    padding: 12px 14px; outline: none; resize: vertical;
+    box-shadow: inset 0 1px 2px rgba(16,24,40,.04);
+    transition: border-color 150ms ease, box-shadow 150ms ease;
+  }
+  #saq-sheet textarea { min-height: 120px; }
+  #saq-sheet textarea:focus,
+  #saq-sheet input[type=text]:focus,
+  #saq-sheet input[type=number]:focus {
+    border-color: var(--saq-primary);
+    box-shadow: inset 0 1px 2px rgba(16,24,40,.03), 0 0 0 3px var(--saq-primary-ring);
+  }
+  #saq-sheet textarea::placeholder, #saq-sheet input::placeholder {
+    color: #a1a1aa; font-family: system-ui;
+  }
+
+  /* Hover motion only on fine pointers — a tap shouldn't trigger it on touch. */
+  @media (hover: hover) and (pointer: fine) {
+    .saq-grip:hover::before { background: #b8b8bd; }
+    .saq-btn:hover { background: #e9e9ec; color: var(--saq-ink); }
+    .saq-btn:hover svg { opacity: .85; }
+    .saq-launcher:hover {
+      background-color: var(--saq-primary-strong);
+      box-shadow:
+        0 1px 1px rgba(16,24,40,.08),
+        0 6px 14px -2px rgba(16,24,40,.5),
+        0 18px 38px -10px rgba(16,24,40,.55),
+        inset 0 1px 0 rgba(255,255,255,.34),
+        inset 0 -1px 0 rgba(16,24,40,.2);
+    }
+  }
+
+  @keyframes saq-spin { to { transform: rotate(360deg); } }
+  @keyframes saq-pop { from { opacity: 0; transform: scale(0.97); } }
+  @keyframes saq-fade { from { opacity: 0; } }
+  @keyframes saq-rise { from { opacity: 0; transform: translateY(6px); } }
+  @media (prefers-reduced-motion: reduce) {
+    .saq-card, .saq-inner, .saq-block { animation: saq-fade 160ms ease both; }
+    /* Drop the drawer slide — fade in place instead of moving the viewport. */
+    #saq-sheet { transform: none; opacity: 0; pointer-events: none;
+      transition: opacity 180ms ease; }
+    #saq-sheet.is-open { opacity: 1; pointer-events: auto; }
+    #saq-backdrop, .saq-launcher { transition: opacity 160ms ease; }
+    .saq-btn, .saq-block.is-syncing { transition: opacity 160ms ease; }
+    .saq-block.is-syncing { filter: none; }
+  }
+
+  /* Compact density (popup toggle) */
+  #saq-sheet.saq-compact .saq-inner { max-width: 680px; }
+  #saq-sheet.saq-compact .saq-block { padding: 12px 16px; margin-bottom: 10px; }
+  #saq-sheet.saq-compact .saq-stem { font-size: 15px; margin-bottom: 11px; }
+  #saq-sheet.saq-compact .saq-qlabel { margin-bottom: 9px; }
+
+  /* Print: flatten the fixed sheet into normal flow, hide everything else. */
+  @media print {
+    body > * { display: none !important; }
+    body > #saq-sheet { display: block !important; }
+    #saq-sheet {
+      position: static !important; height: auto !important; transform: none !important;
+      box-shadow: none !important; border-radius: 0 !important;
+      background: #fff !important; color: #000 !important;
+    }
+    .saq-grip, .saq-header, .saq-warn { display: none !important; }
+    .saq-scroll { overflow: visible !important; height: auto !important;
+      -webkit-mask-image: none !important; mask-image: none !important; padding: 0 !important; }
+    .saq-inner { max-width: none !important; }
+    .saq-block { break-inside: avoid; background: #fff !important; color: #000 !important;
+      border: 1px solid #ddd !important; box-shadow: none !important; animation: none !important; }
+    .saq-block .saq-stem, .saq-block .saq-stem * { color: #000 !important; }
+  }

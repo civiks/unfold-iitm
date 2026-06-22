@@ -1,0 +1,37 @@
+name: Publish to Chrome Web Store
+
+# Manual, opt-in publish. Requires four repo secrets:
+#   CHROME_EXTENSION_ID, CHROME_CLIENT_ID, CHROME_CLIENT_SECRET, CHROME_REFRESH_TOKEN
+# Run it from the Actions tab (workflow_dispatch) after a Release.
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: "Submit for review (true) or just upload a draft (false)"
+        type: boolean
+        default: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Build + zip
+        run: |
+          node build.mjs
+          cd build && zip -r -FS ../unfold.zip . -x '*.DS_Store'
+
+      - name: Upload to Chrome Web Store
+        uses: mnao305/chrome-extension-upload@v5
+        with:
+          file-path: unfold.zip
+          extension-id: ${{ secrets.CHROME_EXTENSION_ID }}
+          client-id: ${{ secrets.CHROME_CLIENT_ID }}
+          client-secret: ${{ secrets.CHROME_CLIENT_SECRET }}
+          refresh-token: ${{ secrets.CHROME_REFRESH_TOKEN }}
+          publish: ${{ inputs.publish }}

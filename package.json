@@ -1,0 +1,13 @@
+{
+  "name": "unfold-iitm",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Declutter the IITM Online Degree portal.",
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "check": "node --check bookmarklet/bookmarklet-source.js",
+    "verify": "node build.mjs && git diff --exit-code -- build/run.js bookmarklet/bookmarklet.txt bookmarklet/install.html"
+  },
+  "license": "MIT"
+}

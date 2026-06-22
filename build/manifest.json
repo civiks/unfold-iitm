@@ -1,0 +1,62 @@
+{
+  "manifest_version": 3,
+  "name": "[unfold]",
+  "version": "0.1.0",
+  "description": "Declutter the IITM Online Degree portal.",
+  "homepage_url": "https://github.com/civiks/unfold-iitm",
+  "permissions": [
+    "scripting",
+    "activeTab",
+    "storage"
+  ],
+  "host_permissions": [
+    "*://*.study.iitm.ac.in/*",
+    "https://onlinedegree.iitm.ac.in/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.study.iitm.ac.in/*",
+        "https://onlinedegree.iitm.ac.in/*"
+      ],
+      "js": [
+        "customize.js",
+        "run.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "fonts/*.woff2"
+      ],
+      "matches": [
+        "*://*.study.iitm.ac.in/*",
+        "https://onlinedegree.iitm.ac.in/*"
+      ]
+    }
+  ],
+  "action": {
+    "default_title": "Show All Questions",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "iitm-show-all-questions@local",
+      "strict_min_version": "115.0"
+    }
+  }
+}

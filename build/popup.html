@@ -1,0 +1,131 @@
+<!doctype html>
+<meta charset="utf-8" />
+<style>
+  /* Grouped settings: section labels, rounded cards, hairline rows, pill toggles. */
+  @font-face { font-family: "Inter"; font-weight: 400; font-display: swap;
+    src: url("fonts/Inter-Regular.woff2") format("woff2"); }
+  @font-face { font-family: "Inter"; font-weight: 500; font-display: swap;
+    src: url("fonts/Inter-Medium.woff2") format("woff2"); }
+  :root {
+    --font: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --ink: #1a1a1e;
+    --muted: #8a8a93;
+    --backdrop: #f3f3f5;
+    --card: #ffffff;
+    --hair: #f0f0f2;
+    --track: #e3e3e8;
+    --shadow: 0 1px 2px rgba(16,24,40,.05), 0 10px 24px -14px rgba(16,24,40,.22);
+  }
+  * { box-sizing: border-box; }
+  body {
+    width: 360px; margin: 0; padding: 16px;
+    font: 400 13px/1.45 var(--font);
+    color: var(--ink); background: var(--backdrop);
+  }
+
+  .head { display: flex; align-items: baseline; gap: 8px; margin: 2px 2px 14px; }
+  .head .name { font-weight: 500; font-size: 16px; letter-spacing: -0.01em; }
+  .head .meta { margin-left: auto; color: var(--muted); font-size: 11px;
+    font-variant-numeric: tabular-nums; }
+  .head .meta a { color: var(--ink); text-decoration: none; }
+  .head .meta a:hover { text-decoration: underline; }
+  .head .meta a[hidden] { display: none; }
+
+  .section { margin: 14px 6px 7px; font-weight: 500; font-size: 11px;
+    letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+  .section:first-of-type { margin-top: 2px; }
+
+  .panel {
+    background: var(--card); border-radius: 20px; box-shadow: var(--shadow);
+    padding: 0 16px;
+  }
+  .row { display: flex; align-items: center; gap: 13px; padding: 15px 0; border-top: 1px solid var(--hair); }
+  .row:first-child { border-top: 0; }
+  .body { min-width: 0; }
+  .body .t { display: block; font-size: 14px; font-weight: 500; letter-spacing: -0.01em; }
+  .tag { display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 999px;
+    font-size: 9px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase;
+    vertical-align: 1px; color: var(--muted); background: var(--track); }
+  .tail { margin-left: auto; flex: none; }
+
+  #open {
+    width: 100%; border: 0; border-radius: 16px; margin-top: 11px;
+    padding: 14px 16px; cursor: pointer;
+    font: 500 14px var(--font); letter-spacing: -0.01em; color: #fff;
+    background: var(--ink); box-shadow: 0 1px 2px rgba(16,24,40,.12);
+    transition: transform 90ms ease, opacity 120ms ease;
+  }
+  #open:hover { opacity: .92; }
+  #open:active { transform: translateY(1px); }
+  #open:disabled { background: #e7e7ea; color: #a8a8b0; cursor: default; box-shadow: none; transform: none; }
+
+  .switch { position: relative; width: 50px; height: 30px; display: block; cursor: pointer; }
+  .switch input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+  .switch .slider { position: absolute; inset: 0; border-radius: 999px; background: var(--track);
+    transition: background 160ms ease; }
+  .switch .slider::before {
+    content: ""; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px;
+    border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(16,24,40,.3);
+    transition: transform 180ms cubic-bezier(0.32,0.72,0,1);
+  }
+  .switch input:checked + .slider { background: var(--ink); }
+  .switch input:checked + .slider::before { transform: translateX(20px); }
+  .switch input:focus-visible + .slider { box-shadow: 0 0 0 3px rgba(26,26,30,.22); }
+
+</style>
+
+<div class="head">
+  <span class="name">[unfold]</span>
+  <span class="meta"><span id="ver"></span><a id="repo" href="#" target="_blank" rel="noopener" hidden> · GitHub</a></span>
+</div>
+
+<div class="panel">
+  <div class="row">
+    <span class="body"><span class="t">Extension enabled</span></span>
+    <label class="switch tail"><input type="checkbox" data-key="enabled" checked /><span class="slider"></span></label>
+  </div>
+</div>
+
+<div class="section">Quiz</div>
+<div class="panel">
+  <div class="row">
+    <span class="body"><span class="t">Auto-show launcher</span></span>
+    <label class="switch tail"><input type="checkbox" data-key="autoLauncher" checked /><span class="slider"></span></label>
+  </div>
+  <div class="row">
+    <span class="body"><span class="t">Compact cards</span></span>
+    <label class="switch tail"><input type="checkbox" data-key="compact" /><span class="slider"></span></label>
+  </div>
+</div>
+
+<button id="open" disabled>Show all questions</button>
+
+<div class="section">Interface</div>
+<div class="panel">
+  <div class="row">
+    <span class="body"><span class="t">Inter font<span class="tag">Beta</span></span></span>
+    <label class="switch tail"><input type="checkbox" data-key="font" /><span class="slider"></span></label>
+  </div>
+</div>
+
+<div class="section">Declutter</div>
+<div class="panel">
+  <div class="row">
+    <span class="body"><span class="t">Hide breadcrumbs</span></span>
+    <label class="switch tail"><input type="checkbox" data-key="hideBreadcrumb" /><span class="slider"></span></label>
+  </div>
+  <div class="row">
+    <span class="body"><span class="t">Hide info banners</span></span>
+    <label class="switch tail"><input type="checkbox" data-key="hideBanner" /><span class="slider"></span></label>
+  </div>
+</div>
+
+<div class="section">Focus</div>
+<div class="panel">
+  <div class="row">
+    <span class="body"><span class="t">Hide sidebar</span></span>
+    <label class="switch tail"><input type="checkbox" data-key="hideSidebar" /><span class="slider"></span></label>
+  </div>
+</div>
+
+<script src="popup.js"></script>

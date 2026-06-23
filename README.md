@@ -1,4 +1,4 @@
-<img width="72px" alt="[unfold] icon" src="build/icons/icon-128.png" />
+<img width="72px" alt="[unfold] icon" src="extension/icons/icon-128.png" />
 
 # [unfold]
 
@@ -41,7 +41,7 @@ No install needed? Open `bookmarklet/install.html` and drag the button to your b
 
 ## Build
 
-There's no bundler. The logic lives in `bookmarklet/bookmarklet-source.js`, and the build copies it into `build/run.js` and regenerates the bookmarklet files:
+There's no bundler. The logic lives in `bookmarklet/bookmarklet-source.js`; the build assembles `build/` from `extension/` (the static manifest, icons, popup) plus the generated `run.js`, and regenerates the bookmarklet files. `build/` isn't committed — CI produces it as a downloadable artifact.
 
 ```bash
 node build.mjs

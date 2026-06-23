@@ -6,3 +6,6 @@ node_modules/
 # stray build-framework scaffolds (we ship a hand-rolled build)
 .wxt/
 .output/
+
+# build
+build/

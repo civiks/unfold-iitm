@@ -7,7 +7,7 @@
   "scripts": {
     "build": "node build.mjs",
     "check": "node --check bookmarklet/bookmarklet-source.js",
-    "verify": "node build.mjs && git diff --exit-code -- build/run.js bookmarklet/bookmarklet.txt bookmarklet/install.html"
+    "verify": "node build.mjs && git diff --exit-code -- bookmarklet/bookmarklet.txt bookmarklet/install.html"
   },
   "license": "MIT"
 }

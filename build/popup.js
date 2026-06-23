@@ -16,20 +16,28 @@ if (mf.homepage_url) { repo.href = mf.homepage_url; repo.hidden = false; }
 const activeTab = async () =>
   (await chrome.tabs.query({ active: true, currentWindow: true }))[0];
 
-const keyName = (key) => {
+// Label by e.code (physical key), so e.g. macOS Option+Q resolves to "Q".
+const keyName = (e) => {
+  const c = e.code || "";
+  if (/^Key[A-Z]$/.test(c)) return c.slice(3);
+  if (/^Digit[0-9]$/.test(c)) return c.slice(5);
+  if (/^Numpad[0-9]$/.test(c)) return "Num" + c.slice(6);
+  if (/^F\d{1,2}$/.test(c)) return c;
   const names = {
-    " ": "Space",
+    Space: "Space",
     ArrowUp: "Up",
     ArrowDown: "Down",
     ArrowLeft: "Left",
     ArrowRight: "Right",
     Escape: "Esc",
   };
-  return names[key] || (key.length === 1 ? key.toUpperCase() : key);
+  if (names[c]) return names[c];
+  const k = e.key || "";
+  return k.length === 1 ? k.toUpperCase() : k;
 };
 const shortcutFromEvent = (e) => {
   if (["Control", "Shift", "Alt", "Meta"].includes(e.key)) return "";
-  const key = keyName(e.key);
+  const key = keyName(e);
   const parts = [];
   if (e.ctrlKey) parts.push("Ctrl");
   if (e.altKey) parts.push("Alt");

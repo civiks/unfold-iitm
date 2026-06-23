@@ -1,5 +1,10 @@
 name: Release
 
+# MANUAL FALLBACK. The primary release path is release-please.yml (merge the
+# Release PR). Use this only to hand-cut a tag that release-please won't make on
+# its own — e.g. a pre-release v0.2.0-alpha.2. Tags pushed by release-please use
+# GITHUB_TOKEN and do NOT trigger this workflow, so there's no double-release.
+#
 # Push a tag like v0.2.0 (or a pre-release v0.2.0-alpha) to cut a GitHub Release
 # with the zipped extension. The tag's numeric part must match manifest version;
 # a suffix like -alpha/-beta/-rc marks the release as a pre-release.

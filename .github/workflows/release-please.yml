@@ -1,0 +1,65 @@
+name: Release Please
+
+# Automated release pipeline driven by Conventional Commits.
+#
+# On every push to main, release-please maintains a "Release PR" that bumps the
+# version (package.json + build/manifest.json) and updates CHANGELOG.md based on
+# the commit messages since the last release:
+#   fix:        -> patch  (0.1.0 -> 0.1.1)
+#   feat:       -> minor  (0.1.0 -> 0.2.0)
+#   feat!: / BREAKING CHANGE -> major (0.1.0 -> 1.0.0; while 0.x, a minor bump)
+#
+# Merging that Release PR creates the git tag + GitHub Release. The publish job
+# then builds, zips, attests provenance, and attaches the artifact.
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.rp.outputs.release_created }}
+      tag_name: ${{ steps.rp.outputs.tag_name }}
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: rp
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  # Build + attach the extension zip only when a release was actually cut.
+  publish-assets:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write       # required for build provenance attestation
+      attestations: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Regenerate build outputs
+        run: node build.mjs
+
+      - name: Zip extension
+        run: cd build && zip -r -FS "../unfold-${{ needs.release-please.outputs.tag_name }}.zip" . -x '*.DS_Store'
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: unfold-*.zip
+
+      - name: Attach zip to the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "${{ needs.release-please.outputs.tag_name }}" unfold-*.zip --clobber

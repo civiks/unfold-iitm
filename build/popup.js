@@ -1,8 +1,12 @@
 // Toolbar popup: gate the quiz action on a study-domain tab, and persist every
 // [data-key] toggle to chrome.storage.local (read live by run.js + customize.js).
 const QUIZ_HOST = /(^|\.)(study\.iitm\.ac\.in|onlinedegree\.iitm\.ac\.in)$/i;
+const DEFAULT_SHORTCUT = "Alt+Q";
 
 const openBtn = document.getElementById("open");
+const shortcutBtn = document.getElementById("shortcut");
+const shortcutClear = document.getElementById("shortcutClear");
+const shortcutEnabled = document.getElementById("shortcutEnabled");
 const mf = chrome.runtime.getManifest();
 
 document.getElementById("ver").textContent = "v" + mf.version;
@@ -12,18 +16,102 @@ if (mf.homepage_url) { repo.href = mf.homepage_url; repo.hidden = false; }
 const activeTab = async () =>
   (await chrome.tabs.query({ active: true, currentWindow: true }))[0];
 
+const keyName = (key) => {
+  const names = {
+    " ": "Space",
+    ArrowUp: "Up",
+    ArrowDown: "Down",
+    ArrowLeft: "Left",
+    ArrowRight: "Right",
+    Escape: "Esc",
+  };
+  return names[key] || (key.length === 1 ? key.toUpperCase() : key);
+};
+const shortcutFromEvent = (e) => {
+  if (["Control", "Shift", "Alt", "Meta"].includes(e.key)) return "";
+  const key = keyName(e.key);
+  const parts = [];
+  if (e.ctrlKey) parts.push("Ctrl");
+  if (e.altKey) parts.push("Alt");
+  if (e.shiftKey) parts.push("Shift");
+  if (e.metaKey) parts.push("Meta");
+  if (!parts.length && !/^F\d{1,2}$/.test(key)) return "";
+  parts.push(key);
+  return parts.join("+");
+};
+
 // Settings ── every toggle declares its storage key + default via data-key/checked.
 const toggles = [...document.querySelectorAll("input[data-key]")];
 const store = chrome.storage?.local;
+let currentShortcut = DEFAULT_SHORTCUT;
+let recordingShortcut = false;
+const renderShortcut = (value = currentShortcut) => {
+  currentShortcut = value || "";
+  shortcutBtn.textContent = recordingShortcut ? "Press keys" : currentShortcut || "Off";
+  shortcutBtn.classList.toggle("is-listening", recordingShortcut);
+  const disabled = !shortcutEnabled.checked;
+  shortcutBtn.disabled = disabled;
+  shortcutClear.disabled = disabled;
+};
+const stopRecording = () => {
+  recordingShortcut = false;
+  window.removeEventListener("keydown", onShortcutKey, true);
+  renderShortcut();
+};
+function onShortcutKey(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  if (e.key === "Escape") { stopRecording(); return; }
+  if (["Control", "Shift", "Alt", "Meta"].includes(e.key)) return;
+  if (e.key === "Backspace" || e.key === "Delete") {
+    store.set({ openShortcut: "" });
+    stopRecording();
+    return;
+  }
+  const next = shortcutFromEvent(e);
+  if (!next) {
+    shortcutBtn.textContent = "Add modifier";
+    setTimeout(() => renderShortcut(), 700);
+    return;
+  }
+  store.set({ openShortcut: next });
+  currentShortcut = next;
+  stopRecording();
+}
+
 if (store) {
-  const defaults = {};
+  const defaults = { openShortcut: DEFAULT_SHORTCUT };
   toggles.forEach((t) => (defaults[t.dataset.key] = t.defaultChecked));
-  store.get(defaults, (v) => toggles.forEach((t) => (t.checked = v[t.dataset.key])));
+  store.get(defaults, (v) => {
+    toggles.forEach((t) => (t.checked = v[t.dataset.key]));
+    renderShortcut(v.openShortcut);
+  });
   toggles.forEach((t) =>
     t.addEventListener("change", () => store.set({ [t.dataset.key]: t.checked }))
   );
+  shortcutBtn.addEventListener("click", () => {
+    if (!shortcutEnabled.checked) return;
+    if (recordingShortcut) { stopRecording(); return; }
+    recordingShortcut = true;
+    renderShortcut();
+    window.addEventListener("keydown", onShortcutKey, true);
+  });
+  shortcutClear.addEventListener("click", () => {
+    if (!shortcutEnabled.checked) return;
+    store.set({ openShortcut: "" });
+    renderShortcut("");
+  });
+  chrome.storage.onChanged?.addListener((c) => {
+    if (c.openShortcutEnabled) {
+      shortcutEnabled.checked = c.openShortcutEnabled.newValue;
+      if (!shortcutEnabled.checked && recordingShortcut) stopRecording();
+      renderShortcut();
+    }
+    if (c.openShortcut && !recordingShortcut) renderShortcut(c.openShortcut.newValue);
+  });
 } else {
   toggles.forEach((t) => t.closest(".row")?.remove());
+  shortcutBtn.closest(".row")?.remove();
 }
 
 // Page gate ── enable the quiz action only on a study domain.

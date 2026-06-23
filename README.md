@@ -22,6 +22,7 @@
 - Hide sidebar, breadcrumbs, info banners
 - Compact mode
 - Master on/off toggle
+- Configurable keyboard shortcut
 
 <img width="300px" alt="[unfold] popup" src=".github/assets/hero.png" />
 

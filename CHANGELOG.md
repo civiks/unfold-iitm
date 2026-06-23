@@ -1,0 +1,14 @@
+# Changelog
+
+## [0.2.0](https://github.com/civiks/unfold-iitm/compare/v0.1.0...v0.2.0) (2026-06-23)
+
+
+### Features
+
+* added customizable Keyboard shortcut functionality to improve UX ([3b4db0a](https://github.com/civiks/unfold-iitm/commit/3b4db0a2e03aef605dee8b6ef1d549eeb6fd9e85))
+* added customizable Keyboard shortcut functionality to improve UX ([08b100f](https://github.com/civiks/unfold-iitm/commit/08b100f35e78c9fb1b4b12acdbe6b4aeefa32b80))
+
+
+### Bug Fixes
+
+* match shortcuts by physical key (e.code) ([#2](https://github.com/civiks/unfold-iitm/issues/2)) ([1d6e678](https://github.com/civiks/unfold-iitm/commit/1d6e6783c76e471366cfd279627495b0190cf31f))

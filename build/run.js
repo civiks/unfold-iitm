@@ -17,6 +17,7 @@
   };
   const SETTLE_MS = 700; // fallback pause if no save-status element is present
   const SAVE_TIMEOUT = 9000; // give up waiting for "Saved" after this long
+  const DEFAULT_SHORTCUT = "Alt+Q";
 
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -69,6 +70,32 @@
     }
     return false; // timed out — surfaced to the user as a warning
   };
+
+  const keyName = (key) => {
+    const names = {
+      " ": "Space",
+      ArrowUp: "Up",
+      ArrowDown: "Down",
+      ArrowLeft: "Left",
+      ArrowRight: "Right",
+      Escape: "Esc",
+    };
+    return names[key] || (key.length === 1 ? key.toUpperCase() : key);
+  };
+  const shortcutFromEvent = (e) => {
+    if (["Control", "Shift", "Alt", "Meta"].includes(e.key)) return "";
+    const key = keyName(e.key);
+    const parts = [];
+    if (e.ctrlKey) parts.push("Ctrl");
+    if (e.altKey) parts.push("Alt");
+    if (e.shiftKey) parts.push("Shift");
+    if (e.metaKey) parts.push("Meta");
+    if (!parts.length && !/^F\d{1,2}$/.test(key)) return "";
+    parts.push(key);
+    return parts.join("+");
+  };
+  const isTypingTarget = (el) =>
+    !!el?.closest?.("input, textarea, select, [contenteditable=true], [contenteditable='']");
 
   // ── Capture every question's HTML ───────────────────────────────────────
   const overlay = {
@@ -481,15 +508,24 @@
 
   const refresh = rebuild; // the Refresh button re-captures on demand
 
-  // Esc dismisses; keep one global listener.
+  // Settings state; storage updates these live in the extension build.
+  let enabled = true; // master toggle; off → tear everything down
+  let autoLauncher = true; // off → wait for manual open
+  let openShortcutEnabled = true;
+  let openShortcut = DEFAULT_SHORTCUT;
+
+  // Esc dismisses; the configured shortcut opens the all-questions sheet.
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && $("#saq-sheet")?.classList.contains("is-open")) dismiss();
-  });
+    if (!enabled || !openShortcutEnabled || !openShortcut || e.repeat || isTypingTarget(e.target)) return;
+    if (shortcutFromEvent(e) !== openShortcut || !isQuiz()) return;
+    e.preventDefault();
+    e.stopPropagation();
+    window.__saqOpen();
+  }, true);
 
   // ── Auto-detect ──────────────────────────────────────────────────────────
   // Show the launcher when a quiz is on the page; tear down when it's gone.
-  let enabled = true; // master toggle; off → tear everything down
-  let autoLauncher = true; // off → wait for manual open
   const detect = () => {
     if (!enabled) { removeAll(); return; }
     if (isQuiz()) {
@@ -520,14 +556,17 @@
   // Settings (extension only; page world has no chrome.storage → defaults stick).
   try {
     if (chrome?.storage?.local) {
-      chrome.storage.local.get({ enabled: true, autoLauncher: true, compact: false }, (v) => {
+      chrome.storage.local.get({ enabled: true, autoLauncher: true, compact: false, openShortcutEnabled: true, openShortcut: DEFAULT_SHORTCUT }, (v) => {
         enabled = v.enabled; autoLauncher = v.autoLauncher; compact = v.compact;
+        openShortcutEnabled = v.openShortcutEnabled; openShortcut = v.openShortcut;
         detect(); applyPrefs();
       });
       chrome.storage.onChanged?.addListener((c) => {
         if (c.enabled) { enabled = c.enabled.newValue; detect(); }
         if (c.autoLauncher) { autoLauncher = c.autoLauncher.newValue; detect(); }
         if (c.compact) { compact = c.compact.newValue; applyPrefs(); }
+        if (c.openShortcutEnabled) { openShortcutEnabled = c.openShortcutEnabled.newValue; }
+        if (c.openShortcut) { openShortcut = c.openShortcut.newValue; }
       });
     }
   } catch {}

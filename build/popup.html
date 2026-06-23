@@ -72,6 +72,28 @@
   .switch input:checked + .slider::before { transform: translateX(20px); }
   .switch input:focus-visible + .slider { box-shadow: 0 0 0 3px rgba(26,26,30,.22); }
 
+  .shortcut-wrap { display: flex; align-items: center; gap: 7px; }
+  .shortcut, .shortcut-clear {
+    border: 0; border-radius: 11px; cursor: pointer;
+    font: 500 12px var(--font); color: var(--ink); background: var(--track);
+    transition: background 120ms ease, color 120ms ease, transform 90ms ease;
+  }
+  .shortcut {
+    min-width: 82px; max-width: 130px; padding: 8px 10px;
+    overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+    font-variant-numeric: tabular-nums;
+  }
+  .shortcut-clear { min-width: 44px; height: 30px; padding: 0 8px; color: var(--muted); }
+  .shortcut:hover, .shortcut-clear:hover { background: #d9d9df; color: var(--ink); }
+  .shortcut:active, .shortcut-clear:active { transform: translateY(1px); }
+  .shortcut:focus-visible, .shortcut-clear:focus-visible {
+    outline: 0; box-shadow: 0 0 0 3px rgba(26,26,30,.18);
+  }
+  .shortcut.is-listening { color: #fff; background: var(--ink); }
+  .shortcut:disabled, .shortcut-clear:disabled {
+    opacity: .48; cursor: default; transform: none; background: var(--track); color: var(--muted);
+  }
+
 </style>
 
 <div class="head">
@@ -95,6 +117,17 @@
   <div class="row">
     <span class="body"><span class="t">Compact cards</span></span>
     <label class="switch tail"><input type="checkbox" data-key="compact" /><span class="slider"></span></label>
+  </div>
+  <div class="row">
+    <span class="body"><span class="t">Keyboard shortcut</span></span>
+    <label class="switch tail"><input id="shortcutEnabled" type="checkbox" data-key="openShortcutEnabled" checked /><span class="slider"></span></label>
+  </div>
+  <div class="row">
+    <span class="body"><span class="t">Shortcut keys</span></span>
+    <span class="shortcut-wrap tail">
+      <button id="shortcut" class="shortcut" type="button">Alt+Q</button>
+      <button id="shortcutClear" class="shortcut-clear" type="button" title="Clear shortcut">Clear</button>
+    </span>
   </div>
 </div>
 

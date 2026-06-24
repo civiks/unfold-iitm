@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "[unfold]",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Declutter the IITM Online Degree portal.",
   "homepage_url": "https://github.com/civiks/unfold-iitm",
   "permissions": [

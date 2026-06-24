@@ -48,8 +48,10 @@ const shortcutFromEvent = (e) => {
   return parts.join("+");
 };
 
-// Settings ── every toggle declares its storage key + default via data-key/checked.
-const toggles = [...document.querySelectorAll("input[data-key]")];
+// Settings ── controls declare their storage key via data-key. Checkbox default
+// comes from `checked`; text-input default from `data-default` (or "").
+const toggles = [...document.querySelectorAll("input[type=checkbox][data-key]")];
+const texts = [...document.querySelectorAll("input[type=text][data-key]")];
 const store = chrome.storage?.local;
 let currentShortcut = DEFAULT_SHORTCUT;
 let recordingShortcut = false;
@@ -90,12 +92,17 @@ function onShortcutKey(e) {
 if (store) {
   const defaults = { openShortcut: DEFAULT_SHORTCUT };
   toggles.forEach((t) => (defaults[t.dataset.key] = t.defaultChecked));
+  texts.forEach((t) => (defaults[t.dataset.key] = t.dataset.default ?? ""));
   store.get(defaults, (v) => {
     toggles.forEach((t) => (t.checked = v[t.dataset.key]));
+    texts.forEach((t) => (t.value = v[t.dataset.key] ?? ""));
     renderShortcut(v.openShortcut);
   });
   toggles.forEach((t) =>
     t.addEventListener("change", () => store.set({ [t.dataset.key]: t.checked }))
+  );
+  texts.forEach((t) =>
+    t.addEventListener("input", () => store.set({ [t.dataset.key]: t.value.trim() }))
   );
   shortcutBtn.addEventListener("click", () => {
     if (!shortcutEnabled.checked) return;
@@ -119,6 +126,7 @@ if (store) {
   });
 } else {
   toggles.forEach((t) => t.closest(".row")?.remove());
+  texts.forEach((t) => t.closest(".row")?.remove());
   shortcutBtn.closest(".row")?.remove();
 }
 

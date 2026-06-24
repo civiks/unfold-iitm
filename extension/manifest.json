@@ -26,17 +26,6 @@
       "run_at": "document_idle"
     }
   ],
-  "web_accessible_resources": [
-    {
-      "resources": [
-        "fonts/*.woff2"
-      ],
-      "matches": [
-        "*://*.study.iitm.ac.in/*",
-        "https://onlinedegree.iitm.ac.in/*"
-      ]
-    }
-  ],
   "action": {
     "default_title": "Show All Questions",
     "default_popup": "popup.html",

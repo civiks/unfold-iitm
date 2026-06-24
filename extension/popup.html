@@ -2,12 +2,8 @@
 <meta charset="utf-8" />
 <style>
   /* Grouped settings: section labels, rounded cards, hairline rows, pill toggles. */
-  @font-face { font-family: "Inter"; font-weight: 400; font-display: swap;
-    src: url("fonts/Inter-Regular.woff2") format("woff2"); }
-  @font-face { font-family: "Inter"; font-weight: 500; font-display: swap;
-    src: url("fonts/Inter-Medium.woff2") format("woff2"); }
   :root {
-    --font: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     --ink: #1a1a1e;
     --muted: #8a8a93;
     --backdrop: #f3f3f5;
@@ -94,6 +90,15 @@
     opacity: .48; cursor: default; transform: none; background: var(--track); color: var(--muted);
   }
 
+  .text-input {
+    border: 0; border-radius: 11px; padding: 8px 10px; max-width: 150px;
+    font: 500 12px var(--font); color: var(--ink); background: var(--track);
+    transition: background 120ms ease;
+  }
+  .text-input::placeholder { color: var(--muted); }
+  .text-input:hover { background: #d9d9df; }
+  .text-input:focus-visible { outline: 0; box-shadow: 0 0 0 3px rgba(26,26,30,.18); }
+
 </style>
 
 <div class="head">
@@ -136,8 +141,10 @@
 <div class="section">Interface</div>
 <div class="panel">
   <div class="row">
-    <span class="body"><span class="t">Inter font<span class="tag">Beta</span></span></span>
-    <label class="switch tail"><input type="checkbox" data-key="font" /><span class="slider"></span></label>
+    <span class="body"><span class="t">Portal font<span class="tag">Beta</span></span></span>
+    <input id="fontName" class="text-input tail" type="text" data-key="fontName"
+      placeholder="System default" spellcheck="false" autocomplete="off"
+      title="Type any font installed on your system, e.g. Inter" />
   </div>
 </div>
 

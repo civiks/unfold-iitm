@@ -1,0 +1,55 @@
+name: Bug report
+description: Something in [unfold] isn't working as expected
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. [unfold] reads and replays answers on the live quiz form, so please include enough detail to reproduce.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you expect, and what happened instead?
+      placeholder: When I unfold a quiz, ...
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open a quiz on the portal
+        2. Click unfold
+        3. ...
+    validations:
+      required: true
+  - type: dropdown
+    id: install-method
+    attributes:
+      label: How are you running it?
+      options:
+        - Extension (Load unpacked)
+        - Bookmarklet
+        - Built from source
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and version
+      placeholder: Chrome 126 / Firefox 127
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: "[unfold] version"
+      description: See the popup or the release you downloaded.
+      placeholder: 0.2.0
+  - type: textarea
+    id: console
+    attributes:
+      label: Console errors (optional)
+      description: Open DevTools (F12) → Console, copy any red errors.
+      render: text

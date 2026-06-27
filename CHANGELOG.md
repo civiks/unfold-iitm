@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.0](https://github.com/civiks/unfold-iitm/compare/v0.2.0...v0.3.0) (2026-06-27)
+
+
+### Features
+
+* add option to change launcher button position ([#10](https://github.com/civiks/unfold-iitm/issues/10)) ([5e741c0](https://github.com/civiks/unfold-iitm/commit/5e741c0f59c0b05e682b67497d8e53317dc2e552))
+* replace bundled Inter with a typed font-name field ([#8](https://github.com/civiks/unfold-iitm/issues/8)) ([011919d](https://github.com/civiks/unfold-iitm/commit/011919dbb411dccc82a888a5b47905dcd1ba2a81))
+
 ## [0.2.0](https://github.com/civiks/unfold-iitm/compare/v0.1.0...v0.2.0) (2026-06-23)
 
 

@@ -504,14 +504,89 @@
   // Launcher: reopen the existing sheet instantly; only capture if it's gone.
   const reopen = () => ($("#saq-sheet") ? show() : rebuild());
 
+  let dragOccurred = false;
+
+  const saveLauncherPrefs = () => {
+    const data = { launcherPos, launcherX, launcherY };
+    try { localStorage.setItem("saq_prefs", JSON.stringify(data)); } catch {}
+    try { if (chrome?.storage?.local) chrome.storage.local.set(data); } catch {}
+  };
+
+  const makeDraggable = (b) => {
+    const DRAG_THRESHOLD = 5;
+    const getPos = (e) =>
+      e.touches ? { x: e.touches[0].clientX, y: e.touches[0].clientY }
+                : { x: e.clientX, y: e.clientY };
+
+    const down = (e) => {
+      if (e.button && e.button !== 0) return;
+      dragOccurred = false;
+      const p = getPos(e);
+      const r = b.getBoundingClientRect();
+      b.dataset.dx = p.x - r.left;
+      b.dataset.dy = p.y - r.top;
+      b.dataset.sx = p.x;
+      b.dataset.sy = p.y;
+    };
+
+    const move = (e) => {
+      if (b.dataset.dx == null) return;
+      const p = getPos(e);
+      if (Math.abs(p.x - +b.dataset.sx) > DRAG_THRESHOLD ||
+          Math.abs(p.y - +b.dataset.sy) > DRAG_THRESHOLD) dragOccurred = true;
+      if (!dragOccurred) return;
+      b.classList.add("is-dragging");
+      let x = p.x - +b.dataset.dx;
+      let y = p.y - +b.dataset.dy;
+      x = Math.max(0, Math.min(x, innerWidth - b.offsetWidth));
+      y = Math.max(0, Math.min(y, innerHeight - b.offsetHeight));
+      b.style.left = x + "px";
+      b.style.top = y + "px";
+      b.style.right = "auto";
+      b.style.bottom = "auto";
+      if (b.dataset.pos !== "custom") b.dataset.pos = "custom";
+      e.preventDefault();
+    };
+
+    const up = (e) => {
+      if (b.dataset.dx == null) return;
+      b.classList.remove("is-dragging");
+      delete b.dataset.dx;
+      delete b.dataset.dy;
+      delete b.dataset.sx;
+      delete b.dataset.sy;
+      if (dragOccurred) {
+        launcherPos = "custom";
+        launcherX = parseFloat(b.style.left);
+        launcherY = parseFloat(b.style.top);
+        saveLauncherPrefs();
+        e.preventDefault();
+      }
+    };
+
+    b.addEventListener("mousedown", down);
+    document.addEventListener("mousemove", move);
+    document.addEventListener("mouseup", up);
+    b.addEventListener("touchstart", down, { passive: true });
+    document.addEventListener("touchmove", move, { passive: false });
+    document.addEventListener("touchend", up);
+  };
+
   const ensureLauncher = () => {
     if ($("#saq-launcher")) return;
     const b = document.createElement("button");
     b.id = "saq-launcher";
     b.className = "saq-launcher";
     b.dataset.pos = launcherPos;
+    if (launcherPos === "custom" && launcherX != null && launcherY != null) {
+      b.style.left = launcherX + "px";
+      b.style.top = launcherY + "px";
+      b.style.right = "auto";
+      b.style.bottom = "auto";
+    }
     b.innerHTML = `${ICON.launch}<span>All Questions</span>`;
-    b.addEventListener("click", reopen);
+    b.addEventListener("click", (e) => { if (dragOccurred) { e.stopPropagation(); return; } reopen(); });
+    makeDraggable(b);
     document.body.appendChild(b);
   };
 
@@ -523,6 +598,7 @@
   let openShortcutEnabled = true;
   let openShortcut = DEFAULT_SHORTCUT;
   let launcherPos = "bottom-center";
+  let launcherX = null, launcherY = null;
 
   // Esc dismisses; the configured shortcut opens the all-questions sheet.
   document.addEventListener("keydown", (e) => {
@@ -566,9 +642,9 @@
   // Settings (extension only; page world has no chrome.storage → defaults stick).
   try {
     if (chrome?.storage?.local) {
-      chrome.storage.local.get({ enabled: true, autoLauncher: true, compact: false, openShortcutEnabled: true, openShortcut: DEFAULT_SHORTCUT, launcherPos: "bottom-center" }, (v) => {
+      chrome.storage.local.get({ enabled: true, autoLauncher: true, compact: false, openShortcutEnabled: true, openShortcut: DEFAULT_SHORTCUT, launcherPos: "bottom-center", launcherX: null, launcherY: null }, (v) => {
         enabled = v.enabled; autoLauncher = v.autoLauncher; compact = v.compact;
-        openShortcutEnabled = v.openShortcutEnabled; openShortcut = v.openShortcut; launcherPos = v.launcherPos;
+        openShortcutEnabled = v.openShortcutEnabled; openShortcut = v.openShortcut; launcherPos = v.launcherPos; launcherX = v.launcherX; launcherY = v.launcherY;
         detect(); applyPrefs();
       });
       chrome.storage.onChanged?.addListener((c) => {
@@ -577,8 +653,31 @@
         if (c.compact) { compact = c.compact.newValue; applyPrefs(); }
         if (c.openShortcutEnabled) { openShortcutEnabled = c.openShortcutEnabled.newValue; }
         if (c.openShortcut) { openShortcut = c.openShortcut.newValue; }
-        if (c.launcherPos) { launcherPos = c.launcherPos.newValue; const l = $("#saq-launcher"); if (l) l.dataset.pos = launcherPos; }
+        if (c.launcherPos) {
+          launcherPos = c.launcherPos.newValue;
+          const l = $("#saq-launcher");
+          if (l) {
+            l.dataset.pos = launcherPos;
+            if (launcherPos !== "custom") {
+              l.style.left = ""; l.style.top = "";
+              l.style.right = ""; l.style.bottom = "";
+            }
+          }
+        }
+        if (c.launcherX) { launcherX = c.launcherX.newValue; }
+        if (c.launcherY) { launcherY = c.launcherY.newValue; }
       });
+    }
+  } catch {}
+
+  // Load persisted drag position (bookmarklet mode).
+  try {
+    const saved = localStorage.getItem("saq_prefs");
+    if (saved) {
+      const p = JSON.parse(saved);
+      if (p.launcherPos) launcherPos = p.launcherPos;
+      if (typeof p.launcherX === "number") launcherX = p.launcherX;
+      if (typeof p.launcherY === "number") launcherY = p.launcherY;
     }
   } catch {}
 

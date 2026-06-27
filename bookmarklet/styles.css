@@ -166,6 +166,10 @@
   .saq-launcher[data-pos="bottom-right"]:active,
   .saq-launcher[data-pos="top-left"]:active,
   .saq-launcher[data-pos="top-right"]:active { transform: scale(0.97); }
+  .saq-launcher[data-pos="custom"] { transform: translateY(10px) scale(0.96); }
+  .saq-launcher[data-pos="custom"].is-shown { transform: none; }
+  .saq-launcher[data-pos="custom"]:active { transform: scale(0.97); }
+  .saq-launcher.is-dragging { cursor: grabbing; }
 
   .saq-block {
     position: relative; margin: 0 0 16px;

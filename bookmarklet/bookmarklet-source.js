@@ -509,6 +509,7 @@
     const b = document.createElement("button");
     b.id = "saq-launcher";
     b.className = "saq-launcher";
+    b.dataset.pos = launcherPos;
     b.innerHTML = `${ICON.launch}<span>All Questions</span>`;
     b.addEventListener("click", reopen);
     document.body.appendChild(b);
@@ -521,6 +522,7 @@
   let autoLauncher = true; // off → wait for manual open
   let openShortcutEnabled = true;
   let openShortcut = DEFAULT_SHORTCUT;
+  let launcherPos = "bottom-center";
 
   // Esc dismisses; the configured shortcut opens the all-questions sheet.
   document.addEventListener("keydown", (e) => {
@@ -564,9 +566,9 @@
   // Settings (extension only; page world has no chrome.storage → defaults stick).
   try {
     if (chrome?.storage?.local) {
-      chrome.storage.local.get({ enabled: true, autoLauncher: true, compact: false, openShortcutEnabled: true, openShortcut: DEFAULT_SHORTCUT }, (v) => {
+      chrome.storage.local.get({ enabled: true, autoLauncher: true, compact: false, openShortcutEnabled: true, openShortcut: DEFAULT_SHORTCUT, launcherPos: "bottom-center" }, (v) => {
         enabled = v.enabled; autoLauncher = v.autoLauncher; compact = v.compact;
-        openShortcutEnabled = v.openShortcutEnabled; openShortcut = v.openShortcut;
+        openShortcutEnabled = v.openShortcutEnabled; openShortcut = v.openShortcut; launcherPos = v.launcherPos;
         detect(); applyPrefs();
       });
       chrome.storage.onChanged?.addListener((c) => {
@@ -575,6 +577,7 @@
         if (c.compact) { compact = c.compact.newValue; applyPrefs(); }
         if (c.openShortcutEnabled) { openShortcutEnabled = c.openShortcutEnabled.newValue; }
         if (c.openShortcut) { openShortcut = c.openShortcut.newValue; }
+        if (c.launcherPos) { launcherPos = c.launcherPos.newValue; const l = $("#saq-launcher"); if (l) l.dataset.pos = launcherPos; }
       });
     }
   } catch {}

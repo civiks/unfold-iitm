@@ -149,6 +149,24 @@
   }
   .saq-launcher svg { width: 16px; height: 16px; opacity: .92; }
 
+  /* Position variants */
+  .saq-launcher[data-pos="bottom-left"] { left: 26px; right: auto; }
+  .saq-launcher[data-pos="bottom-right"] { left: auto; right: 26px; }
+  .saq-launcher[data-pos="top-left"] { top: 26px; bottom: auto; left: 26px; right: auto; }
+  .saq-launcher[data-pos="top-right"] { top: 26px; bottom: auto; left: auto; right: 26px; }
+  .saq-launcher[data-pos="bottom-left"],
+  .saq-launcher[data-pos="bottom-right"] { transform: translateY(10px) scale(0.96); }
+  .saq-launcher[data-pos="top-left"],
+  .saq-launcher[data-pos="top-right"] { transform: translateY(-10px) scale(0.96); }
+  .saq-launcher[data-pos="bottom-left"].is-shown,
+  .saq-launcher[data-pos="bottom-right"].is-shown,
+  .saq-launcher[data-pos="top-left"].is-shown,
+  .saq-launcher[data-pos="top-right"].is-shown { transform: none; }
+  .saq-launcher[data-pos="bottom-left"]:active,
+  .saq-launcher[data-pos="bottom-right"]:active,
+  .saq-launcher[data-pos="top-left"]:active,
+  .saq-launcher[data-pos="top-right"]:active { transform: scale(0.97); }
+
   .saq-block {
     position: relative; margin: 0 0 16px;
     background: var(--saq-card); border: 1px solid rgba(16,24,40,.045);

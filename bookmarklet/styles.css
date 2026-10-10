@@ -6,6 +6,11 @@
     --saq-border: #e7e7e9;
     --saq-ink: #18181b;
     --saq-muted: #71717a;
+    --saq-control: #f1f1f3;
+    --saq-hover: #e9e9ec;
+    --saq-active: #e4e4e7;
+    --saq-on-primary: #fff;
+    --saq-loading: rgba(247, 247, 248, 0.72);
     --saq-primary: #1f1f23;
     --saq-primary-strong: #000000;
     --saq-primary-ring: rgba(31, 31, 35, 0.32);
@@ -13,7 +18,7 @@
   #saq-overlay {
     position: fixed; inset: 0; z-index: 2147483600;
     display: flex; align-items: center; justify-content: center;
-    background: rgba(247, 247, 248, 0.72);
+    background: var(--saq-loading);
     -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
     opacity: 1; transition: opacity 200ms var(--saq-ease-out);
   }
@@ -30,11 +35,11 @@
   .saq-card-row { display: flex; align-items: center; gap: 12px; }
   .saq-spinner {
     width: 18px; height: 18px; flex: none; border-radius: 50%;
-    border: 2px solid #e4e4e7; border-top-color: var(--saq-primary);
+    border: 2px solid var(--saq-border); border-top-color: var(--saq-primary);
     animation: saq-spin .7s linear infinite;
   }
   .saq-count { margin-left: auto; color: var(--saq-muted); font-variant-numeric: tabular-nums; }
-  .saq-track { height: 3px; border-radius: 999px; background: #ebebed; overflow: hidden; }
+  .saq-track { height: 3px; border-radius: 999px; background: var(--saq-border); overflow: hidden; }
   .saq-bar { height: 100%; width: 100%; background: var(--saq-primary);
     transform: scaleX(0); transform-origin: left;
     transition: transform 220ms var(--saq-ease-out); }
@@ -52,7 +57,7 @@
   #saq-sheet {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 2147483450;
     height: 94vh; display: flex; flex-direction: column;
-    background: var(--saq-bg); border-radius: 16px 16px 0 0;
+    background: var(--saq-bg); color: var(--saq-ink); border-radius: 16px 16px 0 0;
     box-shadow: 0 -10px 48px -16px rgba(24,24,27,.35);
     font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
     transform: translateY(100%); will-change: transform;
@@ -63,7 +68,7 @@
   .saq-grip { flex: none; display: flex; justify-content: center;
     padding: 10px 0 2px; cursor: grab; touch-action: none; }
   .saq-grip::before { content: ""; width: 38px; height: 5px; border-radius: 999px;
-    background: #d4d4d8; transition: background 150ms ease; }
+    background: var(--saq-border); transition: background 150ms ease; }
   .saq-header {
     flex: none; display: flex; align-items: center; gap: 10px;
     padding: 4px 16px 12px;
@@ -76,8 +81,8 @@
   .saq-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
   .saq-btn {
     display: inline-flex; align-items: center; gap: 6px;
-    font: 600 13px system-ui; color: #3f3f46;
-    background: #f1f1f3; border: 1px solid rgba(16,24,40,.05);
+    font: 600 13px system-ui; color: var(--saq-ink);
+    background: var(--saq-control); border: 1px solid rgba(16,24,40,.05);
     padding: 8px 13px; border-radius: 10px; cursor: pointer;
     box-shadow: 0 1px 1.5px rgba(16,24,40,.04), inset 0 1px 0 rgba(255,255,255,.7);
     transition: transform 150ms var(--saq-ease-out), background 150ms ease,
@@ -85,7 +90,7 @@
   }
   .saq-btn:active {
     transform: scale(0.96);
-    background: #e4e4e7;
+    background: var(--saq-active);
     box-shadow: inset 0 1px 2px rgba(16,24,40,.12);
   }
   .saq-btn svg { width: 15px; height: 15px; opacity: .65; }
@@ -119,7 +124,7 @@
     position: fixed; left: 50%; bottom: 26px; z-index: 2147483400;
     display: flex; align-items: center; gap: 9px;
     padding: 13px 22px; border: 0; border-radius: 999px;
-    color: #fff; cursor: pointer; font: 600 14px/1 system-ui; letter-spacing: .01em;
+    color: var(--saq-on-primary); cursor: pointer; font: 600 14px/1 system-ui; letter-spacing: .01em;
     background-color: var(--saq-primary);
     background-image: none;
     box-shadow:
@@ -184,7 +189,7 @@
   .saq-block.is-syncing::after {
     content: ""; position: absolute; top: 14px; right: 14px;
     width: 15px; height: 15px; border-radius: 50%;
-    border: 2px solid #e4e4e7; border-top-color: var(--saq-ink);
+    border: 2px solid var(--saq-border); border-top-color: var(--saq-ink);
     animation: saq-spin .7s linear infinite;
   }
   /* answer did not confirm "Saved" — flag it so the user re-checks natively */
@@ -207,7 +212,7 @@
   }
   #saq-sheet .feedback {
     margin-top: 16px; padding: 12px 14px; border-radius: 12px;
-    background: #f7f7f8; border: 1px solid var(--saq-border);
+    background: var(--saq-bg); border: 1px solid var(--saq-border);
     font: 400 14px/1.55 system-ui; color: var(--saq-ink);
   }
   #saq-sheet .feedback .title {
@@ -226,7 +231,7 @@
   #saq-sheet input[type=number] {
     width: 100%; box-sizing: border-box;
     font: 500 15px/1.5 system-ui !important; color: var(--saq-ink);
-    background: #fff; border: 1px solid var(--saq-border); border-radius: 12px;
+    background: var(--saq-card); border: 1px solid var(--saq-border); border-radius: 12px;
     padding: 12px 14px; outline: none; resize: vertical;
     box-shadow: inset 0 1px 2px rgba(16,24,40,.04);
     transition: border-color 150ms ease, box-shadow 150ms ease;
@@ -244,8 +249,8 @@
 
   /* Hover motion only on fine pointers — a tap shouldn't trigger it on touch. */
   @media (hover: hover) and (pointer: fine) {
-    .saq-grip:hover::before { background: #b8b8bd; }
-    .saq-btn:hover { background: #e9e9ec; color: var(--saq-ink); }
+    .saq-grip:hover::before { background: var(--saq-muted); }
+    .saq-btn:hover { background: var(--saq-hover); color: var(--saq-ink); }
     .saq-btn:hover svg { opacity: .85; }
     .saq-launcher:hover {
       background-color: var(--saq-primary-strong);
@@ -294,5 +299,9 @@
     .saq-inner { max-width: none !important; }
     .saq-block { break-inside: avoid; background: #fff !important; color: #000 !important;
       border: 1px solid #ddd !important; box-shadow: none !important; animation: none !important; }
-    .saq-block .saq-stem, .saq-block .saq-stem * { color: #000 !important; }
+    #saq-sheet .saq-block * { color: #000 !important; }
+    #saq-sheet .saq-block [role=radio], #saq-sheet .saq-block [role=checkbox],
+    #saq-sheet .feedback, #saq-sheet textarea, #saq-sheet input {
+      background: #fff !important; border-color: #ddd !important;
+    }
   }

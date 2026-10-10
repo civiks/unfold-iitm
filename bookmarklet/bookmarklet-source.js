@@ -29,12 +29,46 @@
   // ── Styles ──────────────────────────────────────────────────────────────
   const CSS = __CSS__;
 
+  // Sample the live portal, since its theme need not follow the OS preference.
+  const backgroundOf = (el) => {
+    for (; el; el = el.parentElement) {
+      const color = getComputedStyle(el).backgroundColor;
+      if (color !== "transparent" && color !== "rgba(0, 0, 0, 0)") return color;
+    }
+    return "rgb(255, 255, 255)";
+  };
+  const themeCSS = () => {
+    const view = $(SEL.view);
+    if (!view) return "";
+    const bg = backgroundOf(view);
+    const rgb = bg.match(/[\d.]+/g)?.map(Number);
+    if (!rgb || rgb[0] * .2126 + rgb[1] * .7152 + rgb[2] * .0722 >= 128) return "";
+    const card = backgroundOf(liveQ() || view);
+    const ink = getComputedStyle($(".backend-html", view) || liveQ() || view).color;
+    const option = $(SEL.option, liveQ() || view);
+    const control = option ? backgroundOf(option) : card;
+    return `
+      #saq-sheet, #saq-overlay, #saq-launcher {
+        color-scheme: dark;
+        --saq-bg: ${bg}; --saq-card: ${card}; --saq-ink: ${ink};
+        --saq-muted: ${ink}; --saq-border: ${control};
+        --saq-control: ${control}; --saq-hover: ${bg}; --saq-active: ${card};
+        --saq-primary: ${ink}; --saq-primary-strong: ${ink};
+        --saq-on-primary: ${bg}; --saq-primary-ring: ${ink};
+        --saq-loading: ${bg};
+      }
+      #saq-sheet .saq-btn { box-shadow: none; }
+    `;
+  };
   const ensureStyle = () => {
-    $("#saq-style")?.remove();
-    const s = document.createElement("style");
-    s.id = "saq-style";
-    s.textContent = CSS;
-    document.head.appendChild(s);
+    let s = $("#saq-style");
+    if (!s) {
+      s = document.createElement("style");
+      s.id = "saq-style";
+      document.head.appendChild(s);
+    }
+    const css = CSS + themeCSS();
+    if (s.textContent !== css) s.textContent = css;
   };
 
   // Settle after a chip click: text either changed from prev, or went stable.
@@ -561,7 +595,7 @@
     window.__saqDetect = true;
     let t = null;
     new MutationObserver(() => { clearTimeout(t); t = setTimeout(detect, 250); })
-      .observe(document.documentElement, { childList: true, subtree: true });
+      .observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ["class", "style", "data-theme"] });
   }
   // Settings (extension only; page world has no chrome.storage → defaults stick).
   try {

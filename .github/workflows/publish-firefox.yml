@@ -1,0 +1,54 @@
+name: Publish to Firefox Add-ons
+
+# Manual, opt-in publish. Requires two repo secrets (AMO API credentials from
+# https://addons.mozilla.org/developers/addon/api/key/):
+#   AMO_JWT_ISSUER, AMO_JWT_SECRET
+# Run it from the Actions tab (workflow_dispatch) after a Release. AMO rejects a
+# version number it has already seen, so bump the version before re-running.
+on:
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: "listed = public on addons.mozilla.org; unlisted = signed .xpi for self-distribution"
+        type: choice
+        options: [listed, unlisted]
+        default: listed
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Build
+        run: node build.mjs
+
+      - name: Lint for Firefox
+        run: npx --yes web-ext@8 lint --source-dir build
+
+      # run.js is generated (source + inlined CSS), so AMO review needs the source.
+      - name: Archive source for reviewers
+        run: git archive --format=zip -o source.zip HEAD
+
+      - name: Sign / submit to AMO
+        env:
+          WEB_EXT_API_KEY: ${{ secrets.AMO_JWT_ISSUER }}
+          WEB_EXT_API_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+        run: >
+          npx --yes web-ext@8 sign
+          --source-dir build
+          --artifacts-dir web-ext-artifacts
+          --channel ${{ inputs.channel }}
+          --amo-metadata amo-metadata.json
+          --upload-source-code source.zip
+          ${{ inputs.channel == 'listed' && '--approval-timeout 0' || '' }}
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ inputs.channel == 'unlisted' }}
+        with:
+          name: unfold-firefox-signed
+          path: web-ext-artifacts/*.xpi

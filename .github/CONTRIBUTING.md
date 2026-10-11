@@ -65,3 +65,18 @@ and publishes a GitHub Release with the zip attached.
 Manual. Requires repo secrets `CHROME_EXTENSION_ID`, `CHROME_CLIENT_ID`,
 `CHROME_CLIENT_SECRET`, `CHROME_REFRESH_TOKEN`, then run `publish-chrome.yml` from
 the Actions tab.
+
+## Firefox Add-ons (AMO)
+
+Manual. Requires repo secrets `AMO_JWT_ISSUER`, `AMO_JWT_SECRET` (from
+<https://addons.mozilla.org/developers/addon/api/key/>), then run
+`publish-firefox.yml` from the Actions tab. Pick `listed` to submit to AMO for
+review, or `unlisted` to get a signed `.xpi` (workflow artifact) for
+self-distribution. Listing metadata for the first submission is in
+`amo-metadata.json`; the source zip is uploaded automatically for reviewers.
+
+The add-on ID (`browser_specific_settings.gecko.id` in the manifest) is permanent
+once uploaded to AMO, so settle it before the first submission.
+
+Lint locally with `npm run lint:firefox`, or try it in a throwaway profile with
+`npm run run:firefox` (both after `node build.mjs`).

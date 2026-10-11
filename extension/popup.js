@@ -8,13 +8,15 @@ const shortcutBtn = document.getElementById("shortcut");
 const shortcutClear = document.getElementById("shortcutClear");
 const shortcutEnabled = document.getElementById("shortcutEnabled");
 const mf = chrome.runtime.getManifest();
+// Promise-returning namespace: Firefox's `browser`, else Chrome's `chrome`.
+const ext = globalThis.browser ?? chrome;
 
 document.getElementById("ver").textContent = "v" + mf.version;
 const repo = document.getElementById("repo");
 if (mf.homepage_url) { repo.href = mf.homepage_url; repo.hidden = false; }
 
 const activeTab = async () =>
-  (await chrome.tabs.query({ active: true, currentWindow: true }))[0];
+  (await ext.tabs.query({ active: true, currentWindow: true }))[0];
 
 // Label by e.code (physical key), so e.g. macOS Option+Q resolves to "Q".
 const keyName = (e) => {
@@ -137,12 +139,25 @@ if (store) {
   shortcutBtn.closest(".row")?.remove();
 }
 
+// Site access ── Firefox lets users withhold an MV3 add-on's host permissions
+// (and Chrome's "site access" can restrict them). Without them the content
+// scripts never run, so offer to grant them instead of the quiz action.
+const origins = mf.host_permissions || [];
+let needsAccess = false;
+const hasAccess = async () => {
+  try { return await ext.permissions.contains({ origins }); } catch { return true; }
+};
+
 // Page gate ── enable the quiz action only on a study domain.
 (async () => {
   const tab = await activeTab();
   let host = "";
   try { host = new URL(tab?.url || "").hostname; } catch {}
-  if (QUIZ_HOST.test(host)) {
+  if (!(await hasAccess())) {
+    needsAccess = true;
+    openBtn.disabled = false;
+    openBtn.textContent = "Allow access to the IITM portal";
+  } else if (QUIZ_HOST.test(host)) {
     openBtn.disabled = false;
   } else {
     openBtn.textContent = "Open a quiz page first";
@@ -150,11 +165,23 @@ if (store) {
 })();
 
 openBtn.addEventListener("click", async () => {
+  if (needsAccess) {
+    // request() must run synchronously inside the click (user gesture).
+    // Firefox may close the popup while its prompt is up, so a reload of the
+    // page is what actually picks the content scripts up.
+    ext.permissions.request({ origins }).then(async (ok) => {
+      if (!ok) return;
+      const tab = await activeTab();
+      if (tab?.id && QUIZ_HOST.test(new URL(tab.url || "about:blank").hostname)) ext.tabs.reload(tab.id);
+      window.close();
+    });
+    return;
+  }
   const tab = await activeTab();
   if (!tab?.id) return;
   try {
-    await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["run.js"] });
-    await chrome.scripting.executeScript({
+    await ext.scripting.executeScript({ target: { tabId: tab.id }, files: ["run.js"] });
+    await ext.scripting.executeScript({
       target: { tabId: tab.id },
       func: () => window.__saqOpen && window.__saqOpen(),
     });

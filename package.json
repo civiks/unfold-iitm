@@ -7,7 +7,9 @@
   "scripts": {
     "build": "node build.mjs",
     "check": "node --check bookmarklet/bookmarklet-source.js",
-    "verify": "node build.mjs && git diff --exit-code -- bookmarklet/bookmarklet.txt bookmarklet/install.html"
+    "verify": "node build.mjs && git diff --exit-code -- bookmarklet/bookmarklet.txt bookmarklet/install.html",
+    "lint:firefox": "npx --yes web-ext@8 lint --source-dir build",
+    "run:firefox": "npx --yes web-ext@8 run --source-dir build --start-url https://seek.study.iitm.ac.in/"
   },
   "license": "MIT"
 }

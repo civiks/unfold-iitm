@@ -28,14 +28,22 @@
 
 ## Install
 
-Not on the Chrome/Firefox stores yet. Install it manually:
+Not on the Chrome/Firefox stores yet. Install it manually.
+
+**Chrome / Edge / Brave**
 
 1. Download the zip from [Releases](../../releases/latest).
 2. Unzip it.
 3. Open `chrome://extensions`, turn on "Developer mode" (top right).
 4. Click "Load unpacked" and select the unzipped folder.
 
-On Firefox: open `about:debugging`, click "Load Temporary Add-on", and pick `manifest.json` from the unzipped folder.
+**Firefox** (140 or newer)
+
+1. Download the zip from [Releases](../../releases/latest) (no need to unzip).
+2. Open `about:debugging#/runtime/this-firefox`.
+3. Click "Load Temporary Add-on…" and pick the zip (or `manifest.json` from the unzipped folder).
+
+Temporary add-ons are removed when Firefox restarts. If the launcher doesn't appear, open the toolbar popup and click "Allow access to the IITM portal" (or enable it under `about:addons` → [unfold] → Permissions).
 
 No install needed? Open `bookmarklet/install.html` and drag the button to your bookmarks bar.
 

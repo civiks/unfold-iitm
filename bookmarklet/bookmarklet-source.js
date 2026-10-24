@@ -243,6 +243,70 @@
       const body = fb.textContent.replace(title?.textContent || "", "").trim();
       if (!body) fb.remove();
     });
+    fixContrast(block); // no-op while detached; fixes blocks re-filled in place
+  };
+
+  // ── Keep captured markup readable on the always-light sheet ──────────────
+  // A dark portal theme can leave copied question text white. Correct only the
+  // combinations that are unreadable on the sheet (light-on-light or
+  // dark-on-dark), so highlighted options, review panels and code keep their
+  // own colors.
+  const parseRGB = (s) => {
+    const m = s && s.match(/rgba?\(([^)]+)\)/);
+    if (!m) return null;
+    const p = m[1].split(/[,/\s]+/).filter(Boolean).map(Number);
+    if (p.length < 3 || p.slice(0, 3).some(Number.isNaN)) return null;
+    const a = p.length > 3 && !Number.isNaN(p[3]) ? p[3] : 1;
+    return { r: p[0], g: p[1], b: p[2], a };
+  };
+  const luma = ({ r, g, b }) => {
+    const f = (v) => {
+      v /= 255;
+      return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+    };
+    return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+  };
+  // Composite the nearest backgrounds over white so translucent portal panels
+  // are judged by what the user actually sees.
+  const surface = (el) => {
+    const layers = [];
+    for (let n = el; n; n = n.parentElement) {
+      const c = parseRGB(getComputedStyle(n).backgroundColor);
+      if (!c || c.a <= 0) continue;
+      layers.push(c);
+      if (c.a >= 0.99) break;
+    }
+    let out = { r: 255, g: 255, b: 255 };
+    for (let i = layers.length - 1; i >= 0; i--) {
+      const c = layers[i];
+      out = {
+        r: c.r * c.a + out.r * (1 - c.a),
+        g: c.g * c.a + out.g * (1 - c.a),
+        b: c.b * c.a + out.b * (1 - c.a),
+      };
+    }
+    return out;
+  };
+  const fixContrast = (root) => {
+    if (!root || !root.isConnected) return;
+    root.querySelectorAll("[data-saq-fg]").forEach((el) => {
+      el.style.removeProperty("color");
+      el.style.removeProperty("-webkit-text-fill-color");
+      el.removeAttribute("data-saq-fg");
+    });
+    for (const el of root.querySelectorAll("*")) {
+      const cs = getComputedStyle(el);
+      const fg = parseRGB(cs.getPropertyValue("-webkit-text-fill-color")) || parseRGB(cs.color);
+      if (!fg || fg.a < 0.05) continue;
+      const lit = luma(fg), bg = luma(surface(el));
+      const color =
+        lit > 0.55 && bg > 0.55 ? "var(--saq-ink)" :
+        lit < 0.35 && bg < 0.45 ? "#f4f4f5" : "";
+      if (!color) continue;
+      el.style.setProperty("color", color, "important");
+      el.style.setProperty("-webkit-text-fill-color", color, "important");
+      el.setAttribute("data-saq-fg", "");
+    }
   };
 
   const ICON = {
@@ -477,6 +541,7 @@
   const show = () => {
     const backdrop = $("#saq-backdrop"), sheet = $("#saq-sheet");
     if (!backdrop || !sheet) return;
+    fixContrast($(".saq-inner", sheet) || sheet);
     $("#saq-launcher")?.classList.remove("is-shown");
     startClock(); // mirror the live timer while the backdrop covers it
     requestAnimationFrame(() => {

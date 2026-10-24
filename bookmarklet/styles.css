@@ -52,7 +52,8 @@
   #saq-sheet {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 2147483450;
     height: 94vh; display: flex; flex-direction: column;
-    background: var(--saq-bg); border-radius: 16px 16px 0 0;
+    background: var(--saq-bg); color: var(--saq-ink); color-scheme: light;
+    border-radius: 16px 16px 0 0;
     box-shadow: 0 -10px 48px -16px rgba(24,24,27,.35);
     font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
     transform: translateY(100%); will-change: transform;
@@ -225,8 +226,9 @@
   #saq-sheet input[type=text],
   #saq-sheet input[type=number] {
     width: 100%; box-sizing: border-box;
-    font: 500 15px/1.5 system-ui !important; color: var(--saq-ink);
-    background: #fff; border: 1px solid var(--saq-border); border-radius: 12px;
+    font: 500 15px/1.5 system-ui !important; color: var(--saq-ink) !important;
+    background: #fff !important; border: 1px solid var(--saq-border); border-radius: 12px;
+    -webkit-text-fill-color: var(--saq-ink); caret-color: var(--saq-ink);
     padding: 12px 14px; outline: none; resize: vertical;
     box-shadow: inset 0 1px 2px rgba(16,24,40,.04);
     transition: border-color 150ms ease, box-shadow 150ms ease;
@@ -239,7 +241,9 @@
     box-shadow: inset 0 1px 2px rgba(16,24,40,.03), 0 0 0 3px var(--saq-primary-ring);
   }
   #saq-sheet textarea::placeholder, #saq-sheet input::placeholder {
-    color: #a1a1aa; font-family: system-ui;
+    color: #a1a1aa !important;
+    -webkit-text-fill-color: #a1a1aa;
+    font-family: system-ui;
   }
 
   /* Hover motion only on fine pointers — a tap shouldn't trigger it on touch. */

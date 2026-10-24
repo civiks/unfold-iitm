@@ -56,6 +56,23 @@ const selects = [...document.querySelectorAll("select[data-key]")];
 const store = chrome.storage?.local;
 let currentShortcut = DEFAULT_SHORTCUT;
 let recordingShortcut = false;
+
+// The action is only usable on a quiz domain *and* while the extension is on;
+// otherwise the content script would open a sheet and immediately tear it down.
+let onQuizDomain = false;
+let masterEnabled = true;
+const refreshOpenBtn = () => {
+  if (!onQuizDomain) {
+    openBtn.disabled = true;
+    openBtn.textContent = "Open a quiz page first";
+  } else if (!masterEnabled) {
+    openBtn.disabled = true;
+    openBtn.textContent = "Extension is turned off";
+  } else {
+    openBtn.disabled = false;
+    openBtn.textContent = "Show all questions";
+  }
+};
 const renderShortcut = (value = currentShortcut) => {
   currentShortcut = value || "";
   shortcutBtn.textContent = recordingShortcut ? "Press keys" : currentShortcut || "Off";
@@ -99,6 +116,8 @@ if (store) {
     toggles.forEach((t) => (t.checked = v[t.dataset.key]));
     texts.forEach((t) => (t.value = v[t.dataset.key] ?? ""));
     selects.forEach((t) => (t.value = v[t.dataset.key] ?? t.value));
+    masterEnabled = v.enabled !== false;
+    refreshOpenBtn();
     renderShortcut(v.openShortcut);
   });
   toggles.forEach((t) =>
@@ -123,6 +142,10 @@ if (store) {
     renderShortcut("");
   });
   chrome.storage.onChanged?.addListener((c) => {
+    if (c.enabled) {
+      masterEnabled = c.enabled.newValue;
+      refreshOpenBtn();
+    }
     if (c.openShortcutEnabled) {
       shortcutEnabled.checked = c.openShortcutEnabled.newValue;
       if (!shortcutEnabled.checked && recordingShortcut) stopRecording();
@@ -142,18 +165,24 @@ if (store) {
   const tab = await activeTab();
   let host = "";
   try { host = new URL(tab?.url || "").hostname; } catch {}
-  if (QUIZ_HOST.test(host)) {
-    openBtn.disabled = false;
-  } else {
-    openBtn.textContent = "Open a quiz page first";
-  }
+  onQuizDomain = QUIZ_HOST.test(host);
+  refreshOpenBtn();
 })();
 
 openBtn.addEventListener("click", async () => {
   const tab = await activeTab();
   if (!tab?.id) return;
   try {
-    await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["run.js"] });
+    // Reuse the content-script copy when it is already on the page. Injecting
+    // run.js again used to start a second engine whose observer could tear down
+    // the first one's loading card and sheet.
+    const [probe] = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: () => typeof window.__saqOpen === "function",
+    });
+    if (!probe?.result) {
+      await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["run.js"] });
+    }
     await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       func: () => window.__saqOpen && window.__saqOpen(),

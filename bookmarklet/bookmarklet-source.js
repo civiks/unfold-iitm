@@ -4,6 +4,24 @@
 (async () => {
   "use strict";
 
+  // Bumped whenever the engine changes; printed to the console so it is
+  // obvious whether the tab is running this build or a stale copy.
+  const BUILD = "2026-10-24b";
+
+  // The toolbar popup injects this file on every click. If the content-script
+  // copy is already installed, reuse it. Two engines would each run a
+  // MutationObserver and tear down the other's overlay/sheet mid-capture.
+  if (window.__saqOpen) {
+    console.info("[SAQ] engine already loaded — reusing it");
+    window.__saqOpen();
+    return;
+  }
+  console.info("[SAQ] engine " + BUILD + " starting");
+
+  // Shared across copies/instances: while a capture is in flight nothing may
+  // remove our UI, even if the portal briefly unmounts the quiz component.
+  window.__saqBusy = false;
+
   // ── Selectors / config ──────────────────────────────────────────────────
   const SEL = {
     chip: "div.chips button.chip",
@@ -30,11 +48,13 @@
   const CSS = __CSS__;
 
   const ensureStyle = () => {
-    $("#saq-style")?.remove();
+    // Idempotent: detect() runs on every portal mutation, so removing and
+    // re-adding the <style> each time made the open sheet flicker.
+    if ($("#saq-style")) return;
     const s = document.createElement("style");
     s.id = "saq-style";
     s.textContent = CSS;
-    document.head.appendChild(s);
+    (document.head || document.documentElement).appendChild(s);
   };
 
   // Settle after a chip click: text either changed from prev, or went stable.
@@ -51,6 +71,13 @@
       last = s;
     }
     return sig();
+  };
+
+  // The patched portal can unmount app-assessment-question for a beat while it
+  // swaps questions. Wait for the component to come back before snapshotting.
+  const waitQuestion = async () => {
+    for (let i = 0; i < 60 && !liveQ(); i++) await sleep(50);
+    return liveQ();
   };
 
   // Safety-critical: poll app-save-status (don't guess a delay) so a slow
@@ -150,17 +177,31 @@
   const captureAll = async () => {
     reviewMode = isReview(); // post-deadline results view (read-only + scores)
     const list = chips();
+    if (!list.length) {
+      throw new Error(
+        "Could not find the question chips on this page. The portal layout may have changed."
+      );
+    }
     const wasActive = list.findIndex((c) => c.classList.contains("active"));
     const snaps = [];
     let prev = sig();
     for (let i = 0; i < list.length; i++) {
       overlay.progress(i, list.length);
-      list[i].click();
+      // Re-query each time: the patched portal replaces the chip row when it
+      // re-renders, so the original nodes can be detached by now.
+      const chip = chips()[i] || list[i];
+      chip?.click();
       prev = await waitReady(prev);
+      await waitQuestion();
       snaps.push(liveQ() ? grabQuestion() : { stem: "", opts: "" });
     }
     overlay.progress(list.length, list.length);
-    if (wasActive >= 0) { const p = sig(); list[wasActive].click(); await waitReady(p); }
+    if (wasActive >= 0) {
+      const p = sig();
+      (chips()[wasActive] || list[wasActive])?.click();
+      await waitReady(p);
+      await waitQuestion();
+    }
 
     const total = totalQuestions();
     captureWarning =
@@ -173,6 +214,14 @@
   // Prompt is rendered into .backend-html OUTSIDE the component (which holds only
   // the answer controls), so capture stem + opts separately to keep math intact.
   let snaps = []; // [{ stem, opts }]
+
+  // Live nodes for the built sheet, kept by reference so a portal re-render (or
+  // anything else that clears the DOM) can be repaired without recapturing.
+  let sheetEl = null;
+  let backdropEl = null;
+  let sheetWanted = false; // a sheet has been built and must keep existing
+  let sheetOpen = false; // the user wants it visible right now
+  let sheetHref = ""; // URL the sheet was captured on
 
   const isEscapedHtml = (el) =>
     el.children.length === 0 && /<[a-z!/][^>]*>/i.test(el.textContent);
@@ -333,15 +382,17 @@
       .then(async () => {
         const stack = $(".saq-scroll");
         const block = $("#saq-q-" + qi);
+        if (!stack || !block) return; // sheet rebuilt/dismissed while queued
         const list = chips();
         suppressScroll = true;
         const scrollTop = stack.scrollTop;
         block.classList.add("is-syncing");
 
         const before = sig();
-        list[qi].click();
+        (list[qi] || chips()[qi])?.click();
         await waitReady(before);
-        const target = $$(sel, liveQ())[idx];
+        await waitQuestion();
+        const target = liveQ() ? $$(sel, liveQ())[idx] : null;
 
         let saved = true;
         if (target) {
@@ -349,23 +400,28 @@
           saved = await waitSaved(); // wait for the app to confirm the answer
         }
 
-        snaps[qi] = grabQuestion();
+        if (liveQ()) snaps[qi] = grabQuestion();
         fillBlock(block, qi);
 
         const flush = qi === 0 ? (list[1] ? 1 : 0) : 0; // commit via navigate-away
-        if (flush !== qi) { list[flush].click(); saved = (await waitSaved()) && saved; }
+        if (flush !== qi) {
+          (chips()[flush] || list[flush])?.click();
+          saved = (await waitSaved()) && saved;
+        }
 
         // Text answers only serialize their value after the navigate-away round
         // trip — re-snapshot once we come back so the field isn't left blank.
         if (full && flush !== qi) {
           const p = sig();
-          list[qi].click();
+          (chips()[qi] || list[qi])?.click();
           await waitReady(p);
-          snaps[qi] = grabQuestion();
+          await waitQuestion();
+          if (liveQ()) snaps[qi] = grabQuestion();
           fillBlock(block, qi);
           const back = sig();
-          list[flush].click();
+          (chips()[flush] || list[flush])?.click();
           await waitReady(back);
+          await waitQuestion();
         }
 
         block.classList.toggle("saq-unsaved", !saved); // red flag if it never saved
@@ -462,47 +518,106 @@
   // ── Open / dismiss ───────────────────────────────────────────────────────
   const removeAll = () => {
     stopClock();
+    sheetWanted = false;
+    sheetOpen = false;
+    sheetEl?.remove();
+    backdropEl?.remove();
+    sheetEl = null;
+    backdropEl = null;
     ["#saq-backdrop", "#saq-sheet", "#saq-launcher", "#saq-overlay", "#saq-style"]
       .forEach((s) => $(s)?.remove());
   };
 
+  // Surface a failure instead of leaving the user staring at a blank page after
+  // the loading card disappears.
+  const showError = (message) => {
+    if (!message) return;
+    ensureStyle();
+    $("#saq-overlay")?.remove();
+    const el = document.createElement("div");
+    el.id = "saq-overlay";
+    el.innerHTML = `<div class="saq-card" role="alert">
+      <div class="saq-card-row"><span>Couldn't open All Questions</span></div>
+      <div class="saq-msg"></div>
+      <div class="saq-card-row"><button class="saq-btn" type="button">Close</button></div>
+    </div>`;
+    const msg = $(".saq-msg", el);
+    msg.textContent = message;
+    msg.style.cssText = "font:400 13px/1.5 system-ui;color:#71717a;word-break:break-word";
+    el.querySelector("button").addEventListener("click", () => el.remove());
+    document.body.appendChild(el);
+  };
+
   const dismiss = () => {
+    sheetOpen = false;
     stopClock(); // the live timer is visible again once the backdrop is gone
-    $("#saq-sheet")?.classList.remove("is-open");
-    $("#saq-backdrop")?.classList.remove("is-open");
+    (sheetEl || $("#saq-sheet"))?.classList.remove("is-open");
+    (backdropEl || $("#saq-backdrop"))?.classList.remove("is-open");
     $("#saq-launcher")?.classList.add("is-shown");
   };
 
   // Animate the already-built sheet into view. Instant — no recapture.
   const show = () => {
-    const backdrop = $("#saq-backdrop"), sheet = $("#saq-sheet");
+    const backdrop = backdropEl || $("#saq-backdrop");
+    const sheet = sheetEl || $("#saq-sheet");
     if (!backdrop || !sheet) return;
+    sheetOpen = true;
+    sheetHref = location.href;
     $("#saq-launcher")?.classList.remove("is-shown");
     startClock(); // mirror the live timer while the backdrop covers it
-    requestAnimationFrame(() => {
+    // rAF is throttled in background/headless tabs; the timeout guarantees the
+    // sheet is never left parked off-screen.
+    let revealed = false;
+    const reveal = () => {
+      if (revealed) return;
+      revealed = true;
       backdrop.classList.add("is-open");
       sheet.classList.add("is-open");
-    });
+    };
+    requestAnimationFrame(reveal);
+    setTimeout(reveal, 120);
   };
 
   // Capture fresh, (re)build the sheet, and show it. Used on first run and on
   // explicit Refresh only — NOT on every reopen.
   const rebuild = async () => {
-    $("#saq-sheet")?.remove();
-    $("#saq-backdrop")?.remove();
-    overlay.show();
-    snaps = await captureAll();
-    await overlay.hide();
-
-    const backdrop = document.createElement("div");
-    backdrop.id = "saq-backdrop";
-    backdrop.addEventListener("click", dismiss);
-    document.body.append(backdrop, buildSheet());
-    show();
+    if (window.__saqBusy) return; // a second click while capture is running
+    window.__saqBusy = true;
+    try {
+      $("#saq-overlay")?.remove();
+      overlay.show();
+      try {
+        snaps = await captureAll();
+      } finally {
+        await overlay.hide(); // always take the loading card down
+      }
+      ensureStyle(); // a stray detect() may have removed it during capture
+      if (!snaps.length) throw new Error("No questions were captured.");
+      const backdrop = document.createElement("div");
+      backdrop.id = "saq-backdrop";
+      backdrop.addEventListener("click", dismiss);
+      const sheet = buildSheet();
+      // Swap only once the new sheet exists, so a failed Refresh leaves the
+      // previous one intact instead of dumping the user back on the quiz.
+      (sheetEl || $("#saq-sheet"))?.remove();
+      (backdropEl || $("#saq-backdrop"))?.remove();
+      sheetEl = sheet;
+      backdropEl = backdrop;
+      sheetWanted = true;
+      sheetHref = location.href;
+      document.body.append(backdrop, sheet);
+      show();
+      console.info("[SAQ] built sheet with", snaps.length, "questions at", sheetHref);
+    } catch (e) {
+      console.warn("[SAQ] Could not build the sheet:", e);
+      showError(e?.message || String(e));
+    } finally {
+      window.__saqBusy = false;
+    }
   };
 
   // Launcher: reopen the existing sheet instantly; only capture if it's gone.
-  const reopen = () => ($("#saq-sheet") ? show() : rebuild());
+  const reopen = () => (sheetEl?.isConnected ? show() : rebuild());
 
   const ensureLauncher = () => {
     if ($("#saq-launcher")) return;
@@ -535,33 +650,108 @@
   }, true);
 
   // ── Auto-detect ──────────────────────────────────────────────────────────
-  // Show the launcher when a quiz is on the page; tear down when it's gone.
+  // Show the launcher when a quiz is on the page. A built sheet is never torn
+  // down because the portal briefly unmounts its question component (it does
+  // that on many transitions); only the master toggle deletes it.
+  let leaveTimer = null;
+  const clearLeave = () => {
+    if (leaveTimer) { clearTimeout(leaveTimer); leaveTimer = null; }
+  };
   const detect = () => {
-    if (!enabled) { removeAll(); return; }
+    if (window.__saqBusy) return; // capture in flight — leave its UI alone
+    if (!enabled) { clearLeave(); removeAll(); return; }
+
     if (isQuiz()) {
-      if (!autoLauncher && !$("#saq-sheet")) return; // user opted out of auto-show
-      ensureStyle();
+      clearLeave();
+      ensureStyle(); // keep an open sheet styled even if the site nuked it
+      if (!autoLauncher && !sheetWanted) return; // user opted out of auto-show
       ensureLauncher();
-      if (!$("#saq-sheet")) $("#saq-launcher")?.classList.add("is-shown");
-    } else if ($("#saq-launcher") || $("#saq-sheet")) {
-      removeAll();
+      if (sheetOpen) $("#saq-launcher")?.classList.remove("is-shown");
+      else $("#saq-launcher")?.classList.add("is-shown");
+      return;
+    }
+
+    // Not a quiz right now. Never act on a single frame: the portal unmounts
+    // quiz pieces while it routes. Only close after it has stayed non-quiz for
+    // a while, and always keep the sheet node so reopening is instant.
+    $("#saq-launcher")?.classList.remove("is-shown");
+    if (!sheetWanted || !sheetOpen || leaveTimer) return;
+    leaveTimer = setTimeout(() => {
+      leaveTimer = null;
+      if (window.__saqBusy || isQuiz()) return;
+      // Only a URL change away from the quiz counts as leaving. And if the
+      // chip row is still mounted, the quiz page is still there mid-render:
+      // never auto-close the sheet in that case.
+      if (location.href === sheetHref || $(SEL.chips)) return;
+      dismiss();
+    }, 4000);
+  };
+
+  // Repair anything the portal removes from under us — it clears large parts
+  // of the DOM during navigation, which is why the sheet used to vanish even
+  // though nothing in this file deleted it. Cheap; no-ops until a sheet exists.
+  let restoreLogs = 0;
+  const repair = () => {
+    if (!enabled || !sheetWanted || window.__saqBusy || !sheetEl) return;
+    // Still on the page the sheet belongs to (or back on a quiz): re-attach.
+    if (location.href !== sheetHref && !isQuiz()) return;
+    ensureStyle();
+    if (backdropEl && !backdropEl.isConnected) document.body.appendChild(backdropEl);
+    if (!sheetEl.isConnected) {
+      if (restoreLogs++ < 3) {
+        console.warn("[SAQ] page removed the sheet — restoring it (same URL)");
+      }
+      document.body.appendChild(sheetEl);
+    }
+    if (sheetOpen) {
+      sheetEl.classList.add("is-open");
+      backdropEl?.classList.add("is-open");
+      $("#saq-launcher")?.classList.remove("is-shown");
+    } else {
+      ensureLauncher();
+      $("#saq-launcher")?.classList.add("is-shown");
     }
   };
+  setInterval(repair, 500);
 
   // Manual entry point used by the toolbar button and the bookmarklet.
   window.__saqOpen = () => {
-    if (!isQuiz()) { alert("Open a quiz (with the numbered questions) first."); return; }
+    if (!enabled) {
+      alert("[unfold] is turned off. Enable it in the extension popup first.");
+      return;
+    }
+    if (!isQuiz() && !sheetWanted) {
+      alert("Open a quiz (with the numbered questions) first.");
+      return;
+    }
+    if (window.__saqBusy) return; // ignore double clicks while capturing
     ensureStyle();
     ensureLauncher();
     reopen();
   };
 
+  // Read from the console when reporting a problem: window.__saqDebug()
+  window.__saqDebug = () => ({
+    build: BUILD,
+    quiz: isQuiz(),
+    busy: !!window.__saqBusy,
+    sheetWanted,
+    sheetOpen,
+    sheetInDom: !!sheetEl?.isConnected,
+    styleInDom: !!$("#saq-style"),
+    questions: snaps.length,
+    href: location.href,
+    sheetHref,
+  });
+
   // SPA-navigation observer, once per page (debounced).
   if (!window.__saqDetect) {
     window.__saqDetect = true;
     let t = null;
-    new MutationObserver(() => { clearTimeout(t); t = setTimeout(detect, 250); })
-      .observe(document.documentElement, { childList: true, subtree: true });
+    new MutationObserver(() => {
+      clearTimeout(t);
+      t = setTimeout(() => { detect(); repair(); }, 250);
+    }).observe(document.documentElement, { childList: true, subtree: true });
   }
   // Settings (extension only; page world has no chrome.storage → defaults stick).
   try {
@@ -583,6 +773,7 @@
   } catch {}
 
   detect();
+  console.info("[SAQ] engine ready —", window.__saqDebug());
 
   // Bookmarklet / console use (page world, no extension APIs): open immediately.
   const inExtension = (() => { try { return !!chrome?.runtime?.id; } catch { return false; } })();
